@@ -9,6 +9,7 @@ import 'package:every_door/providers/presets.dart';
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'package:every_door/constants.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -39,6 +40,8 @@ class DatabaseHelper {
   }
 
   Future<Database> createDatabase() async {
+    if (kIsWeb) databaseFactory = databaseFactoryFfiWeb;
+
     if (kEraseDatabase && kDebugMode) {
       _logger.warning('Erasing database! Disable this in constants.dart.');
       await deleteDatabase(kDatabaseName);

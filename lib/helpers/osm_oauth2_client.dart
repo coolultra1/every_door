@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:every_door/constants.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logging/logging.dart';
@@ -8,12 +9,12 @@ import 'package:oauth2_client/access_token_response.dart';
 import 'package:oauth2_client/oauth2_client.dart';
 
 class OpenStreetMapOAuth2Client extends OAuth2Client {
-  OpenStreetMapOAuth2Client()
+  OpenStreetMapOAuth2Client(bool isWeb)
       : super(
           authorizeUrl: 'https://$kOsmAuth2Endpoint/oauth2/authorize',
           tokenUrl: 'https://$kOsmAuth2Endpoint/oauth2/token',
-          redirectUri: 'everydoor:/oauth',
-          customUriScheme: 'everydoor',
+          redirectUri: isWeb ? '$kInstanceUrl/oauth' : 'everydoor:/oauth',
+          customUriScheme: isWeb ? 'http' : 'everydoor',
         );
 }
 
@@ -29,9 +30,9 @@ class OAuthHelperError implements Exception {
 class OpenStreetMapOAuthHelper {
   static const kTokenKey = 'osmToken';
 
-  final OAuth2Client _client = OpenStreetMapOAuth2Client();
-  final String _clientId = 'r_ZDi6JezDDBHj8WSU286d5A7FntAJSMpkB2FGEcaG8';
-  final String _clientSecret = 'DRFc8pDeGt4D2E3j-WdfdTq02o_fnek-WQeWgvXfvTg';
+  final OAuth2Client _client = OpenStreetMapOAuth2Client(kIsWeb);
+  final String _clientId = 'l2Kg0oCr4YUgJvwHj7mEDYHnK5fZ70WhhtNhdLybS2c';
+  final String _clientSecret = 'CHahJEaQO69FKblcRtG8-NKQ6vBV3yBKIBiqu8VU6u8';
 
   // Sandbox
   // final String _clientId = 'fyj-AZcCntFDStKti_62R8rNeeSbfsfaZA7hilpIgFw';

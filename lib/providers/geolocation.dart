@@ -28,12 +28,16 @@ class GeolocationController extends StateNotifier<LatLng?> {
 
   StreamSubscription<Position>? _locSub;
   late final StreamSubscription<ServiceStatus> _statSub;
+  late final Stream<ServiceStatus> _locationStatus;
   final Ref _ref;
   late DateTime _stateTime;
 
   GeolocationController(this._ref) : super(null) {
     _stateTime = DateTime.now().subtract(Duration(hours: 1));
-    _statSub = Geolocator.getServiceStatusStream().listen((status) {
+    if (kIsWeb) return; //getServiceStatusStream is unsupported on Web
+    _locationStatus = Geolocator.getServiceStatusStream();
+
+    _statSub = _locationStatus.listen((status) {
       if (status == ServiceStatus.enabled) {
         enableTracking();
       } else {
@@ -92,8 +96,11 @@ class GeolocationController extends StateNotifier<LatLng?> {
       return;
     }
 
-    final pos = await Geolocator.getLastKnownPosition(
-        forceAndroidLocationManager: _ref.read(forceLocationProvider));
+    Position? pos;
+    if (!kIsWeb)
+      pos = await Geolocator.getLastKnownPosition(
+          forceAndroidLocationManager: _ref.read(forceLocationProvider));
+
     if (pos != null) _updateLocation(_fromPosition(pos));
 
     _locSub = Geolocator.getPositionStream(

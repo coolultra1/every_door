@@ -36,13 +36,18 @@ class ChangesetTagsProvider extends ChangeNotifier {
       platform = 'Android';
     else if (Platform.isIOS)
       platform = 'iOS';
+    else if (kIsWeb)
+      platform = 'Web';
     else
       platform = 'unknown';
 
-    return <String, String>{
+    Map<String, String> changesetTags = <String, String>{
       'comment': comment,
       'created_by': '$kAppTitle $platform $kAppVersion',
     };
+    if (kIsWeb) changesetTags['host'] = kInstanceUrl;
+
+    return changesetTags;
   }
 
   Future<void> loadHashtags() async {

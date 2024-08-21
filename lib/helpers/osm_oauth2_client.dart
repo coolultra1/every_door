@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:every_door/constants.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +6,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logging/logging.dart';
 import 'package:oauth2_client/access_token_response.dart';
 import 'package:oauth2_client/oauth2_client.dart';
+
+import 'package:oauth2_client/oauth2_client.dart';
+import 'package:oauth2_client/oauth2_helper.dart';
 
 class OpenStreetMapOAuth2Client extends OAuth2Client {
   OpenStreetMapOAuth2Client(bool isWeb)
@@ -28,17 +30,20 @@ class OAuthHelperError implements Exception {
 }
 
 class OpenStreetMapOAuthHelper {
+  static const scopes = ['read_prefs', 'write_api', 'write_notes'];
   static const kTokenKey = 'osmToken';
+  static OpenStreetMapOAuthHelper? _instance;
+  static OpenStreetMapOAuthHelper get instance {
+    _instance ??= OpenStreetMapOAuthHelper._internal();
+    return _instance!;
+  }
+
+  // Private named constructor
+  OpenStreetMapOAuthHelper._internal();
 
   final OAuth2Client _client = OpenStreetMapOAuth2Client(kIsWeb);
   final String _clientId = 'l2Kg0oCr4YUgJvwHj7mEDYHnK5fZ70WhhtNhdLybS2c';
   final String _clientSecret = 'CHahJEaQO69FKblcRtG8-NKQ6vBV3yBKIBiqu8VU6u8';
-
-  // Sandbox
-  // final String _clientId = 'fyj-AZcCntFDStKti_62R8rNeeSbfsfaZA7hilpIgFw';
-  // final String _clientSecret = 'FPnRw1h5c7qzcgJdpui5mI0oT0maPPO4jW_kCRed-5Q';
-
-  OpenStreetMapOAuthHelper();
 
   Future<AccessTokenResponse?> getToken([bool requestAuth = true]) async {
     var token = await _loadToken();
@@ -81,14 +86,16 @@ class OpenStreetMapOAuthHelper {
     return data == null ? null : AccessTokenResponse.fromMap(jsonDecode(data));
   }
 
-  _saveToken(AccessTokenResponse? token) async {
+  Future<void> _saveToken(AccessTokenResponse? token) async {
+    print("Saving token");
     final secure = FlutterSecureStorage(
         aOptions: AndroidOptions(encryptedSharedPreferences: true));
     try {
-      if (token == null)
+      if (token == null) {
         await secure.delete(key: kTokenKey);
-      else
+      } else {
         await secure.write(key: kTokenKey, value: jsonEncode(token.respMap));
+      }
     } on PlatformException {
       await secure.deleteAll();
       if (token != null) {
@@ -102,9 +109,21 @@ class OpenStreetMapOAuthHelper {
       clientId: _clientId,
       clientSecret: _clientSecret,
       enablePKCE: true,
-      // enableState: true,
-      scopes: ['read_prefs', 'write_api', 'write_notes'],
+      scopes: scopes,
     );
+
+    return _processRetrievedToken(token);
+  }
+
+  void processAuthCode(String code) async {
+    AccessTokenResponse token =
+        await _client.requestAccessToken(code: code, clientId: _clientId);
+    _processRetrievedToken(token);
+  }
+
+  Future<AccessTokenResponse> _processRetrievedToken(
+      AccessTokenResponse token) async {
+    print("Processing");
     if (token.isValid()) await _saveToken(token);
     return token;
   }
@@ -127,9 +146,10 @@ class OpenStreetMapOAuthHelper {
         // expired
         await _saveToken(null);
         final token2 = await getToken();
-        if (token2 == null)
+        if (token2 == null) {
           throw OAuthHelperError(
               'Token and refresh token expired, and could not get a fresh one.');
+        }
         token = token2;
       } else {
         throw OAuthHelperError(
@@ -140,7 +160,7 @@ class OpenStreetMapOAuthHelper {
     return token;
   }
 
-  Future deleteToken() async {
+  Future<void> deleteToken() async {
     final token = await _loadToken();
     if (token != null) {
       await _saveToken(null);

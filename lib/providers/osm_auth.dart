@@ -5,6 +5,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:every_door/constants.dart';
 import 'package:every_door/helpers/osm_oauth2_client.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
@@ -72,7 +73,7 @@ class OsmAuthController extends StateNotifier<OsmUserDetails?> {
   static const kPasswordKey = 'osmPassword';
   static final _logger = Logger('OsmAuthController');
 
-  final OpenStreetMapOAuthHelper _helper = OpenStreetMapOAuthHelper();
+  final OpenStreetMapOAuthHelper _helper = OpenStreetMapOAuthHelper.instance;
   bool isOAuth = false;
   bool? _supportsOAuth;
 
@@ -128,6 +129,7 @@ class OsmAuthController extends StateNotifier<OsmUserDetails?> {
     if (_supportsOAuth != null) return _supportsOAuth!;
     bool result = false;
     DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+    if (kIsWeb) return true;
     if (Platform.isAndroid) {
       final info = await deviceInfo.androidInfo;
       final sdk = info.version.sdkInt;

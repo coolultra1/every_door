@@ -13,7 +13,7 @@ class OpenStreetMapOAuth2Client extends OAuth2Client {
       : super(
           authorizeUrl: 'https://$kOsmAuth2Endpoint/oauth2/authorize',
           tokenUrl: 'https://$kOsmAuth2Endpoint/oauth2/token',
-          redirectUri: isWeb ? '$kInstanceUrl/oauth' : 'everydoor:/oauth',
+          redirectUri: isWeb ? '$kInstanceUrl/oauth.html' : 'everydoor:/oauth',
           customUriScheme: isWeb ? 'http' : 'everydoor',
         );
 }

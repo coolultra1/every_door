@@ -5,7 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logging/logging.dart';
 import 'package:oauth2_client/access_token_response.dart';
+import 'package:oauth2_client/src/oauth2_utils.dart';
 import 'package:oauth2_client/oauth2_client.dart';
+import 'package:random_string/random_string.dart';
 
 import 'package:oauth2_client/oauth2_client.dart';
 import 'package:oauth2_client/oauth2_helper.dart';
@@ -32,6 +34,7 @@ class OAuthHelperError implements Exception {
 class OpenStreetMapOAuthHelper {
   static const scopes = ['read_prefs', 'write_api', 'write_notes'];
   static const kTokenKey = 'osmToken';
+  static String? _codeVerifier;
   static OpenStreetMapOAuthHelper? _instance;
   static OpenStreetMapOAuthHelper get instance {
     _instance ??= OpenStreetMapOAuthHelper._internal();
@@ -105,20 +108,23 @@ class OpenStreetMapOAuthHelper {
   }
 
   Future<AccessTokenResponse> _fetchToken() async {
-    final token = await _client.getTokenWithAuthCodeFlow(
-      clientId: _clientId,
-      clientSecret: _clientSecret,
-      enablePKCE: true,
-      scopes: scopes,
-    );
+    _codeVerifier = randomAlphaNumeric(80);
+    final codeChallenge = OAuth2Utils.generateCodeChallenge(_codeVerifier!);
+    final authResponse = await _client.requestAuthorization(
+        clientId: _clientId, scopes: scopes, codeChallenge: codeChallenge);
 
-    return _processRetrievedToken(token);
+    return processAuthCode(authResponse.code);
   }
 
-  void processAuthCode(String code) async {
-    AccessTokenResponse token =
-        await _client.requestAccessToken(code: code, clientId: _clientId);
+  Future<AccessTokenResponse> processAuthCode(String? code) async {
+    AccessTokenResponse token = await _client.requestAccessToken(
+        code: code!,
+        clientId: _clientId,
+        clientSecret: _clientSecret,
+        codeVerifier: _codeVerifier);
     _processRetrievedToken(token);
+
+    return token;
   }
 
   Future<AccessTokenResponse> _processRetrievedToken(

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:every_door/constants.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -110,33 +111,39 @@ class OpenStreetMapOAuthHelper {
     }
   }
 
-  Future<AccessTokenResponse> _fetchToken() async {
+Completer<AccessTokenResponse> accessTokenResponseCompleter = Completer<AccessTokenResponse>();
+
+Future<AccessTokenResponse> _fetchToken() async {
     _codeVerifier = randomAlphaNumeric(80);
     final codeChallenge = OAuth2Utils.generateCodeChallenge(_codeVerifier!);
+
     final authResponseFuture = _client.requestAuthorization(
         clientId: _clientId, scopes: scopes, codeChallenge: codeChallenge);
-    final AuthorizationResponse authResponse;
 
     if (!kIsWeb) {
-      authResponse = await authResponseFuture;
-      return await processAuthCode(authResponse.code);
-    } else  {
-      // HOW CAN I WAIT HERE UNTIL processAuthCode IS CALLED FROM SOMEWHERE ELSE?
+        final authResponse = await authResponseFuture;
+        return await processAuthCode(authResponse.code);
+    } else {
+        return await accessTokenResponseCompleter.future;
     }
-    
-  }
+}
 
-  Future<AccessTokenResponse> processAuthCode(String? code) async {
+ Future<AccessTokenResponse> processAuthCode(String? code) async {
+    // Complete the completer to signal that the code is available
     AccessTokenResponse token = await _client.requestAccessToken(
         code: code!,
         clientId: _clientId,
         clientSecret: _clientSecret,
         codeVerifier: _codeVerifier);
 
+    if (!accessTokenResponseCompleter.isCompleted) {
+        accessTokenResponseCompleter.complete(token);
+    }
+
     await _processRetrievedToken(token);
     print("Awaited processing! - Returning on processAuthCode.");
     return token;
-  }
+}
 
   Future<AccessTokenResponse> _processRetrievedToken(
       AccessTokenResponse token) async {

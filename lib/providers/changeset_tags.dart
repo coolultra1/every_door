@@ -32,14 +32,17 @@ class ChangesetTagsProvider extends ChangeNotifier {
     if (hashtags.isNotEmpty) comment += ' $hashtags';
 
     String platform;
-    if (Platform.isAndroid)
-      platform = 'Android';
-    else if (Platform.isIOS)
-      platform = 'iOS';
-    else if (kIsWeb)
-      platform = 'Web';
-    else
-      platform = 'unknown';
+    if (!kIsWeb) {
+      if (Platform.isAndroid) {
+        platform = 'Android';
+      } else if (Platform.isIOS) {
+        platform = 'iOS';
+      } else {
+        platform = 'unknown';
+      }
+    } else {
+      platform = "Web";
+    }
 
     Map<String, String> changesetTags = <String, String>{
       'comment': comment,

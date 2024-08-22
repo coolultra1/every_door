@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logging/logging.dart';
 import 'package:oauth2_client/access_token_response.dart';
+import 'package:oauth2_client/authorization_response.dart';
 import 'package:oauth2_client/src/oauth2_utils.dart';
 import 'package:oauth2_client/oauth2_client.dart';
 import 'package:random_string/random_string.dart';
@@ -50,7 +51,7 @@ class OpenStreetMapOAuthHelper {
 
   Future<AccessTokenResponse?> getToken([bool requestAuth = true]) async {
     var token = await _loadToken();
-
+    print("Loaded token");
     if (token != null) {
       if (token.refreshNeeded()) {
         if (token.refreshToken != null) {
@@ -62,7 +63,9 @@ class OpenStreetMapOAuthHelper {
       }
     } else {
       if (!requestAuth) return null;
+      print("Requesting auth");
       token = await _fetchToken();
+      print("Wait for fetching token over!");
     }
 
     if (!token.isValid()) {
@@ -110,10 +113,17 @@ class OpenStreetMapOAuthHelper {
   Future<AccessTokenResponse> _fetchToken() async {
     _codeVerifier = randomAlphaNumeric(80);
     final codeChallenge = OAuth2Utils.generateCodeChallenge(_codeVerifier!);
-    final authResponse = await _client.requestAuthorization(
+    final authResponseFuture = _client.requestAuthorization(
         clientId: _clientId, scopes: scopes, codeChallenge: codeChallenge);
+    final AuthorizationResponse authResponse;
 
-    return processAuthCode(authResponse.code);
+    if (!kIsWeb) {
+      authResponse = await authResponseFuture;
+      return await processAuthCode(authResponse.code);
+    } else  {
+      // HOW CAN I WAIT HERE UNTIL processAuthCode IS CALLED FROM SOMEWHERE ELSE?
+    }
+    
   }
 
   Future<AccessTokenResponse> processAuthCode(String? code) async {
@@ -122,8 +132,9 @@ class OpenStreetMapOAuthHelper {
         clientId: _clientId,
         clientSecret: _clientSecret,
         codeVerifier: _codeVerifier);
-    _processRetrievedToken(token);
 
+    await _processRetrievedToken(token);
+    print("Awaited processing! - Returning on processAuthCode.");
     return token;
   }
 
@@ -131,6 +142,7 @@ class OpenStreetMapOAuthHelper {
       AccessTokenResponse token) async {
     print("Processing");
     if (token.isValid()) await _saveToken(token);
+    print("Processed. Returning on processRetrievedToken.");
     return token;
   }
 

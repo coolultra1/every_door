@@ -164,15 +164,21 @@ class OsmAuthController extends StateNotifier<OsmUserDetails?> {
 
   loginWithOAuth(BuildContext context) async {
     final token = await _helper.getToken();
+    print("Provider: Got the token");
     if (token != null) {
+      print("Provider: Token not null");
       isOAuth = true;
       final authStr = await _helper.getAuthorizationValue(token);
       if (authStr == null)
         throw OsmAuthException('Failed to build auth string');
       final headers = {'Authorization': authStr};
+      print("Provider: Awaiting User Details");
       final details = await loadUserDetails(headers);
+      print("Provider: Got User Details! Getting shared prefs ");
       final prefs = await SharedPreferences.getInstance();
+      print("Provider: Got Shared Prefs! Setting Display name!");
       await prefs.setString(kLoginKey, details.displayName);
+      print("Provider: Finished!");
       state = details;
     }
   }

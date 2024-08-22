@@ -94,6 +94,7 @@ class _OsmAccountPageState extends ConsumerState<OsmAccountPage> {
   loginWithOAuth() async {
     try {
       await ref.read(authProvider.notifier).loginWithOAuth(context);
+      print("LOGGED IN!");
       updateDetails();
     } on Exception catch (e) {
       if (!mounted) return;

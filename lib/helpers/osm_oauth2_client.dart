@@ -111,9 +111,11 @@ class OpenStreetMapOAuthHelper {
     }
   }
 
-Completer<AccessTokenResponse> accessTokenResponseCompleter = Completer<AccessTokenResponse>();
+  Completer<AccessTokenResponse> ?accessTokenResponseCompleter;
 
-Future<AccessTokenResponse> _fetchToken() async {
+  Future<AccessTokenResponse> _fetchToken() async {
+    accessTokenResponseCompleter = Completer<AccessTokenResponse>();
+
     _codeVerifier = randomAlphaNumeric(80);
     final codeChallenge = OAuth2Utils.generateCodeChallenge(_codeVerifier!);
 
@@ -121,14 +123,14 @@ Future<AccessTokenResponse> _fetchToken() async {
         clientId: _clientId, scopes: scopes, codeChallenge: codeChallenge);
 
     if (!kIsWeb) {
-        final authResponse = await authResponseFuture;
-        return await processAuthCode(authResponse.code);
+      final authResponse = await authResponseFuture;
+      return await processAuthCode(authResponse.code);
     } else {
-        return await accessTokenResponseCompleter.future;
+      return await accessTokenResponseCompleter!.future;
     }
-}
+  }
 
- Future<AccessTokenResponse> processAuthCode(String? code) async {
+  Future<AccessTokenResponse> processAuthCode(String? code) async {
     // Complete the completer to signal that the code is available
     AccessTokenResponse token = await _client.requestAccessToken(
         code: code!,
@@ -136,14 +138,14 @@ Future<AccessTokenResponse> _fetchToken() async {
         clientSecret: _clientSecret,
         codeVerifier: _codeVerifier);
 
-    if (!accessTokenResponseCompleter.isCompleted) {
-        accessTokenResponseCompleter.complete(token);
+    if (!accessTokenResponseCompleter!.isCompleted) {
+      accessTokenResponseCompleter!.complete(token);
     }
 
     await _processRetrievedToken(token);
     print("Awaited processing! - Returning on processAuthCode.");
     return token;
-}
+  }
 
   Future<AccessTokenResponse> _processRetrievedToken(
       AccessTokenResponse token) async {
